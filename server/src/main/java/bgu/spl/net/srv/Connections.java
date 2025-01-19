@@ -9,4 +9,15 @@ public interface Connections<T> {
     void send(String channel, T msg);
 
     void disconnect(int connectionId);
+
+    void subscribe(String channel, int connectionId);
+
+    void unsubscribe(String channel, int connectionId);
+
+    boolean registerUser(String username, String password);
+
+    boolean isUserRegistered(String username);
+
+    boolean isPasswordCorrect(String username, String password);
+
 }
