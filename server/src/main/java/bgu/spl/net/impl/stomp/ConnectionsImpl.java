@@ -6,7 +6,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ConnectionsImpl<T> implements Connections<T> {
     private Map<Integer, ConnectionHandler<T>> clients = new ConcurrentHashMap<>();
-    private Map<String, List<Integer>> channels = new ConcurrentHashMap<>();
+    private Map<String, List<Integer>> topics = new ConcurrentHashMap<>();
     private Map<String, String> users = new ConcurrentHashMap<>(); // Map for username -> password
 
     @Override
@@ -20,8 +20,8 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     @Override
-    public void send(String channel, T msg) {
-        List<Integer> subscribers = channels.get(channel);
+    public void send(String topic, T msg) {
+        List<Integer> subscribers = topics.get(topic);
         if (subscribers != null) {
             for (int id : subscribers) {
                 send(id, msg);
@@ -30,17 +30,17 @@ public class ConnectionsImpl<T> implements Connections<T> {
     }
 
     @Override
-    public void subscribe(String channel, int connectionId) {
-        channels.computeIfAbsent(channel, k -> new CopyOnWriteArrayList<>()).add(connectionId);
+    public void subscribe(String topic, int connectionId) {
+        topics.computeIfAbsent(topic, k -> new CopyOnWriteArrayList<>()).add(connectionId);
     }
 
     @Override
-    public void unsubscribe(String channel, int connectionId) {
-        List<Integer> subscribers = channels.get(channel);
+    public void unsubscribe(String topic, int connectionId) {
+        List<Integer> subscribers = topics.get(topic);
         if (subscribers != null) {
             subscribers.remove(Integer.valueOf(connectionId)); // Remove the subscriber from the list
             if (subscribers.isEmpty()) {
-                channels.remove(channel); // Remove the channel if it has no subscribers
+                topics.remove(topic); // Remove the channel if it has no subscribers
             }
         }
     }
@@ -48,7 +48,7 @@ public class ConnectionsImpl<T> implements Connections<T> {
     @Override
     public void disconnect(int connectionId) {
         clients.remove(connectionId);
-        for (List<Integer> list : channels.values()) {
+        for (List<Integer> list : topics.values()) {
             list.remove(Integer.valueOf(connectionId));
         }
     }
