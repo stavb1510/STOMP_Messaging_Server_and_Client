@@ -1,5 +1,6 @@
 package bgu.spl.net.impl.echo;
 
+import bgu.spl.net.impl.stomp.StompMessagingProtocolImp;
 import bgu.spl.net.srv.Server;
 
 public class EchoServer {
