@@ -156,6 +156,7 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
             return;
         }
         if (subscriptions.containsKey(destination)) {
+            //handleError("Already subscribed to this channel");
             return;
         }
         subscriptions.put(destination, subscriptionId);

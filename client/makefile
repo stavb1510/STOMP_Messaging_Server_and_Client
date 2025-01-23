@@ -1,27 +1,29 @@
-CFLAGS:=-c -Wall -Weffc++ -g -std=c++11 -Iinclude
-LDFLAGS:=-lboost_system -lpthread
-# TODO change the makefile for StompEMIlient
-all: EchoClient
+CFLAGS := -c -Wall -Weffc++ -g -std=c++11 -Iinclude
+LDFLAGS := -lboost_system -lpthread
+BIN_DIR := bin
+SRC_DIR := src
 
-EchoClient: bin/ConnectionHandler.o bin/echoClient.o
-	g++ -o bin/EchoClient bin/ConnectionHandler.o bin/echoClient.o $(LDFLAGS)
+# Default target
+all: StompClient
 
-StompWCIClient: bin/ConnectionHandler.o bin/StompClient.obin/event.o
-	g++ -o bin/StompWCIClient bin/ConnectionHandler.o bin/StompClient.o $(LDFLAGS)
+# Build the main StompClient executable
+StompClient: $(BIN_DIR)/ConnectionHandler.o $(BIN_DIR)/StompProtocol.o $(BIN_DIR)/StompClient.o $(BIN_DIR)/event.o
+	g++ -o $(BIN_DIR)/StompClient $(BIN_DIR)/ConnectionHandler.o $(BIN_DIR)/StompProtocol.o $(BIN_DIR)/StompClient.o $(BIN_DIR)/event.o $(LDFLAGS)
 
-bin/ConnectionHandler.o: src/ConnectionHandler.cpp
-	g++ $(CFLAGS) -o bin/ConnectionHandler.o src/ConnectionHandler.cpp
+# Compile each source file into object files
+$(BIN_DIR)/ConnectionHandler.o: $(SRC_DIR)/ConnectionHandler.cpp
+	g++ $(CFLAGS) -o $(BIN_DIR)/ConnectionHandler.o $(SRC_DIR)/ConnectionHandler.cpp
 
-bin/echoClient.o: src/echoClient.cpp
-	g++ $(CFLAGS) -o bin/echoClient.o src/echoClient.cpp
+$(BIN_DIR)/StompProtocol.o: $(SRC_DIR)/StompProtocol.cpp
+	g++ $(CFLAGS) -o $(BIN_DIR)/StompProtocol.o $(SRC_DIR)/StompProtocol.cpp
 
-bin/event.o: src/event.cpp
-	g++ $(CFLAGS) -o bin/event.o src/event.cpp
+$(BIN_DIR)/StompClient.o: $(SRC_DIR)/StompClient.cpp
+	g++ $(CFLAGS) -o $(BIN_DIR)/StompClient.o $(SRC_DIR)/StompClient.cpp
 
-bin/StompClient.o: src/StompClient.cpp
-	g++ $(CFLAGS) -o bin/StompClient.o src/StompClient.cpp
+$(BIN_DIR)/event.o: $(SRC_DIR)/event.cpp
+	g++ $(CFLAGS) -o $(BIN_DIR)/event.o $(SRC_DIR)/event.cpp
 
+# Clean target to remove all build artifacts
 .PHONY: clean
 clean:
-	rm -f bin/*
-	
+	rm -f $(BIN_DIR)/*
