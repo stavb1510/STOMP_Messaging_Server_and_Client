@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MessageEncoderDecoderImp implements MessageEncoderDecoder<StompFrame> {
-
+    
     private byte[] bytes = new byte[1 << 10]; 
     private int len = 0; 
 
@@ -17,9 +17,9 @@ public class MessageEncoderDecoderImp implements MessageEncoderDecoder<StompFram
         // If we encounter the termination character '\u0000', decode the message
         if (nextByte == '\u0000') {
             String message = popString(); 
+            System.out.println("Full message received: " + message); // Debug: print the full message
             return parseFrame(message);
         }
-
         // Add the byte to the buffer
         pushByte(nextByte);
         return null; // Message is not complete yet
@@ -68,7 +68,9 @@ public class MessageEncoderDecoderImp implements MessageEncoderDecoder<StompFram
         int i = 1;
         while (i < lines.length && !lines[i].isEmpty()) {
             String[] headerParts = lines[i].split(":", 2); 
-            headers.put(headerParts[0].trim(), headerParts[1].trim());
+            if (headerParts.length == 2) {
+                headers.put(headerParts[0].trim(), headerParts[1].trim());
+            }
             i++;
         }
 

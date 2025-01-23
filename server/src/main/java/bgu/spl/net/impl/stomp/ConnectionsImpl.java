@@ -6,7 +6,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ConnectionsImpl<T> implements Connections<T> {
     private Map<Integer, ConnectionHandler<T>> clients = new ConcurrentHashMap<>();
-    private Map<String, List<Integer>> topics = new ConcurrentHashMap<>();
+    private Map<String, List<Integer>> topics = new ConcurrentHashMap<>(); //every client that subscribe to specific topic
     private Map<String, String> users = new ConcurrentHashMap<>(); // Map for username -> password
 
     @Override

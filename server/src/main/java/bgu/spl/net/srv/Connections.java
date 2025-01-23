@@ -20,4 +20,6 @@ public interface Connections<T> {
 
     boolean isPasswordCorrect(String username, String password);
 
+    void addClient(int connectionId, ConnectionHandler<T> handler);
+
 }
