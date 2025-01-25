@@ -14,7 +14,8 @@ StompProtocol::StompProtocol(ConnectionHandler &connectionHandler):connectionHan
           password(""),
           username(""),
           subscriptionid(0),
-          reciptid(0)
+          reciptid(0),
+          subscribedChannels()
 {
 }
 

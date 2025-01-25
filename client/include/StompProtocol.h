@@ -5,7 +5,7 @@
 #include <map>
 #include <atomic>
 #include <vector>
-
+using namespace std;
 class StompProtocol {
 public:
     StompProtocol(ConnectionHandler &connectionHandler);
@@ -16,11 +16,11 @@ public:
 private:
     ConnectionHandler &connectionHandler;
     bool isConnected;
-    string password;
-    string username;
-    atomic<int> subscriptionid;
-    atomic<int> reciptid;
-    map<string, int> subscribedChannels;
+    std::string password;
+    std::string username;
+    std::atomic<int> subscriptionid;
+    std::atomic<int> reciptid;
+    std::map<string, int> subscribedChannels;
     
 
     // Helper methods for specific commands
@@ -33,5 +33,5 @@ private:
 
     
     std::map<std::string, std::string> parseCommand(const std::string &input);
-    vector<string> splitInput(const string &input);
+    std::vector<string> splitInput(const string &input);
 };
