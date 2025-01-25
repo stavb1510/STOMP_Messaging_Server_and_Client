@@ -97,7 +97,7 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
 
         if (connections.isUserRegistered(username)) {
             if (!connections.isPasswordCorrect(username, password)) {
-                handleError("Incorrect password for user: " + username);
+                handleError("Wrong password");
                 return;
             }
         } else {

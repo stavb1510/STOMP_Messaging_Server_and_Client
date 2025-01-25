@@ -8,7 +8,7 @@
 #include <sstream>
 #include <cstring>
 
-#include "../include/keyboardInput.h"
+
 
 using namespace std;
 using json = nlohmann::json;
@@ -112,6 +112,15 @@ Event::Event(const std::string &frame_body): channel_name(""), city(""),
         }
     }
     general_information = general_information_from_string;
+}
+
+void split_str(const std::string &str, char delimiter, std::vector<std::string> &output) {
+    std::stringstream ss(str);
+    std::string item;
+
+    while (std::getline(ss, item, delimiter)) {
+        output.push_back(item);
+    }
 }
 
 names_and_events parseEventsFile(std::string json_path)

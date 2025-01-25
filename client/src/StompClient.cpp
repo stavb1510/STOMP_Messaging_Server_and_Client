@@ -3,6 +3,9 @@
 #include <iostream>
 #include <thread>
 #include <atomic>
+#include <string>
+#include <map>
+#include <vector>
 
 using namespace std;
 
@@ -18,11 +21,12 @@ int main(int argc, char *argv[]) {
     short port = atoi(argv[2]);
 
     ConnectionHandler connectionHandler(host, port);
+    
     if (!connectionHandler.connect()) {
         cerr << "Cannot connect to " << host << ":" << port << endl;
         return 1;
     }
-
+    std::cout << "fck spl" << std::endl;
     StompProtocol stompProtocol(connectionHandler);
 
     thread keyboardThread(&StompProtocol::handleKeyboardInput, &stompProtocol);

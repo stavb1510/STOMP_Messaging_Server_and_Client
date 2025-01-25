@@ -1,13 +1,25 @@
 #include "../include/StompProtocol.h"
 #include <iostream>
 #include <sstream>
+#include "StompProtocol.h"
+#include <atomic>
+#include <event.h>
+#include <ctime> 
+#include <iomanip> 
 
 using namespace std;
 
-StompProtocol::StompProtocol(ConnectionHandler &connectionHandler)
-    : connectionHandler(connectionHandler), isConnected(false) {}
+StompProtocol::StompProtocol(ConnectionHandler &connectionHandler):connectionHandler(connectionHandler), 
+          isConnected(false),
+          password(""),
+          username(""),
+          subscriptionid(0),
+          reciptid(0)
+{
+}
 
-void StompProtocol::handleKeyboardInput() {
+void StompProtocol::handleKeyboardInput()
+{
     string input;
     while (getline(cin, input)) {
         if (input.empty()) {
@@ -40,31 +52,43 @@ void StompProtocol::handleKeyboardInput() {
     }
 }
 
+void StompProtocol::handleServerCommunication()
+{
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 void StompProtocol::handleLogin(const std::string &input) {
     if (isConnected) {
-        cout << "Already logged in." << endl;
+        cout << "The client is already logged in, log out before tryingagain" << endl;
         return;
     }
+
+    // Split the input into arguments using parseCommand
     auto args = parseCommand(input);
 
-    // Check if the command has exactly 4 arguments (login, host:port, username, password)
-    if (args.size() != 4) {
+    // Check if the command has exactly 5 arguments (login, host, port, username, password)
+    if (args.size() != 5 || args["command"] != "login") {
         cout << "login command needs 3 args: {host:port} {username} {password}" << endl;
         return;
     }
 
     string host = args["host"];
-    string port = args["port"];
-    string username = args["username"];
-    string password = args["password"];
-    if(host != "127.0.0.1" || port != "7777") {
-        cout << "host:port are illegal" << endl;
+    string portStr = args["port"];
+    short port = 0;
+    try {
+        port = stoi(portStr); // Convert port to short
+    } catch (...) {
+        cout << "Invalid port number" << endl;
+        return;
     }
 
-    if (!connectionHandler.connect()) {
-        cerr << "Failed to connect to server at " << host << ":" << port << endl;
+    username = args["username"];
+    password = args["password"];
+
+    // Validate host and port
+    if (host != "127.0.0.1" || port != 7777) {
+        cout << "host:port are illegal" << endl;
         return;
     }
 
@@ -74,10 +98,12 @@ void StompProtocol::handleLogin(const std::string &input) {
                           "host:" + host + "\n"
                           "login:" + username + "\n"
                           "passcode:" + password + "\n\n\0";
+
     if (!connectionHandler.sendLine(connectFrame)) {
         cerr << "Failed to send CONNECT frame" << endl;
         return;
     }
+    // להתמודד עם ארור מהסרבר
 
     isConnected = true;
     cout << "Login successful" << endl;
@@ -87,21 +113,31 @@ void StompProtocol::handleLogin(const std::string &input) {
 
 void StompProtocol::handleJoin(const std::string &input) {
     if (!isConnected) {
-        cerr << "Not connected. Please login first." << endl;
+        cerr << "Please login first." << endl;
         return;
     }
 
-    auto args = parseCommand(input);
-    string channel = args["channel"];
+    auto args = splitInput(input);
+
+    if (args.size() != 2 || args[0] != "join") {
+        cerr << "join command needs 1 args: {channel_name}" << endl;
+        return;
+    }
+    
+    string channel = args[1];
 
     // Build and send a SUBSCRIBE frame
     string subscribeFrame = "SUBSCRIBE\n"
                             "destination:" + channel + "\n"
-                            "id:" + to_string(rand()) + "\n\n\0";
+                            "id:" + to_string(subscriptionid.fetch_add(1)) + "/n"
+                            "receipt" + to_string(reciptid.fetch_add(1)) + 
+                             "\n\n\0";
     if (!connectionHandler.sendLine(subscribeFrame)) {
         cerr << "Failed to send SUBSCRIBE frame" << endl;
         return;
     }
+    
+    subscribedChannels[channel] = subscriptionid;
 
     cout << "Joined channel: " << channel << endl;
 }
@@ -110,132 +146,163 @@ void StompProtocol::handleJoin(const std::string &input) {
 
 void StompProtocol::handleExit(const std::string &input) {
     if (!isConnected) {
-        cerr << "Not connected. Please login first." << endl;
+        cerr << "Please login first" << endl;
+        return;
+    }
+    auto args = splitInput(input);
+
+    if (args.size() != 2 || args[0] != "exit") {
+        cerr << "exit command needs 1 args: {channel_name}" << endl;
         return;
     }
 
-    auto args = parseCommand(input);
-    string channel = args["channel"];
+    string channelName = args[1];
 
-    // Build and send an UNSUBSCRIBE frame
+    auto it = subscribedChannels.find(channelName);
+    if (it == subscribedChannels.end()) {
+        cerr << "You are not subscribed to channel: " << channelName << endl;
+        return;
+    }
+
+    int id = it->second;
+
     string unsubscribeFrame = "UNSUBSCRIBE\n"
-                              "destination:" + channel + "\n\n\0";
+                              "id:" + to_string(id) + "\n"
+                              "receipt:" + to_string(reciptid.fetch_add(1)) + 
+                              "\n\n\0";
+
     if (!connectionHandler.sendLine(unsubscribeFrame)) {
-        cerr << "Failed to send UNSUBSCRIBE frame" << endl;
+        cerr << "Failed to send UNSUBSCRIBE frame for channel: " << channelName << endl;
         return;
     }
 
-    cout << "Exited channel: " << channel << endl;
+    subscribedChannels.erase(it);
+
+    cout << "Exited channel: " << channelName << endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 void StompProtocol::handleLogout(const std::string &input) {
     if (!isConnected) {
-        cerr << "Not connected. Please login first." << endl;
+        cerr << "Please login first" << endl;
         return;
     }
+    auto args = splitInput(input);
 
-    // Build and send a DISCONNECT frame
-    string disconnectFrame = "DISCONNECT\n\n\0";
+    if (args.size() != 1) {
+        cerr << "logout command needs 0 args" << endl;
+        return;
+    } 
+    int shouldDisconnect = reciptid.fetch_add(1);
+    string disconnectFrame = "DISCONNECT\n\n\0"
+                             "receipt" + std::to_string(shouldDisconnect);
     if (!connectionHandler.sendLine(disconnectFrame)) {
         cerr << "Failed to send DISCONNECT frame" << endl;
         return;
     }
-
+    // התמודדות עם קבלה של רסיפט וסגירה של הסוקט!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     isConnected = false;
     connectionHandler.close();
+    subscribedChannels.clear(); 
     cout << "Logged out successfully." << endl;
 }
 
+void StompProtocol::handleReport(const std::string &input)
+{
+    if (!isConnected) {
+        cerr << "Please login first" << endl;
+        return;
+    }
+    auto args = splitInput(input);
+
+    if (args.size() != 2 || args[0] != "report") {
+        cerr << "exit command needs 1 args: {file}" << endl;
+        return;
+    }
+    string fileName = args[1];
+
+    names_and_events parsedData;
+    try {
+        parsedData = parseEventsFile(fileName); 
+    } catch (const std::exception &e) {
+        cerr << "Failed to parse file: " << e.what() << endl;
+        return;
+    }
+    vector<Event> events = parsedData.events;
+    sort(events.begin(), events.end(), [](const Event &a, const Event &b) {
+        return a.get_date_time() < b.get_date_time();
+    });
+    string channelName = parsedData.channel_name;
+    for (const Event &event : events) {
+        string eventFrame = "SEND\n"
+                            "destination:" + channelName + "\n\n" +
+                            "user:" + username + "\n" +
+                            "event name:" + event.get_name() + "\n" +
+                            "city:" + event.get_city() + "\n" +
+                            "date time:" + to_string(event.get_date_time()) + "\n" +
+                            "description:" + event.get_description() + "\n" +
+                            "general information:\n";
+        const map<string, string> &generalInfo = event.get_general_information();
+        for (const auto &entry : generalInfo) {
+            eventFrame += "  " + entry.first + ":" + entry.second + "\n";
+        }
+        eventFrame +="\0";
+        if (!connectionHandler.sendLine(eventFrame)) {
+            cerr << "Failed to send event to channel: " << channelName << endl;
+            return;
+        }
+    }
+
+} 
 ////////////////////////////////////////////////////////////////////////////////
 
-/*void StompProtocol::handleReport(const std::string &input) {
-    if (!isConnected) {
-        cerr << "Not connected. Please login first." << endl;
-        return;
-    }
-
-    auto args = parseCommand(input);
-    string reportFilePath = args["file"];
-
-    // Open and parse the report file
-    ifstream reportFile(reportFilePath);
-    if (!reportFile.is_open()) {
-        cerr << "Failed to open report file: " << reportFilePath << endl;
-        return;
-    }
-
-    json reportData;
-    try {
-        reportFile >> reportData;
-    } catch (const exception &e) {
-        cerr << "Error parsing JSON report file: " << e.what() << endl;
-        return;
-    }
-
-    // Convert the report data to a STOMP MESSAGE frame
-    string reportFrame = "SEND\n"
-                         "destination:/report\n"
-                         "\n" +
-                         reportData.dump() + // Serialize JSON data to string
-                         "\n\0";
-
-    if (!connectionHandler.sendLine(reportFrame)) {
-        cerr << "Failed to send REPORT frame" << endl;
-        return;
-    }
-
-    cout << "Report sent successfully: " << reportFilePath << endl;
+void StompProtocol::handleSummary(const std::string &input)
+{
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-void StompProtocol::handleSummary(const std::string &input) {
-    if (!isConnected) {
-        cerr << "Not connected. Please login first." << endl;
-        return;
-    }
-
-    auto args = parseCommand(input);
-    string summaryFilePath = args["file"];
-
-    // Placeholder: Open the summary file for local processing
-    ifstream summaryFile(summaryFilePath);
-    if (!summaryFile.is_open()) {
-        cerr << "Failed to open summary file: " << summaryFilePath << endl;
-        return;
-    }
-
-    // Parse the file (e.g., JSON or custom format)
-    json summaryData;
-    try {
-        summaryFile >> summaryData;
-    } catch (const exception &e) {
-        cerr << "Error parsing summary file: " << e.what() << endl;
-        return;
-    }
-
-    // Perform local summary calculations (this is just a placeholder for actual logic)
-    cout << "Processing summary for file: " << summaryFilePath << endl;
-    for (auto &event : summaryData["events"]) {
-        cout << "Event: " << event["name"] << " | Details: " << event["description"] << endl;
-    }
-
-    cout << "Summary processed successfully." << endl;
-}*/
 
 ////////////////////////////////////////////////////////////////////////////////
 
 map<string, string> StompProtocol::parseCommand(const string &input) {
     istringstream iss(input);
-    map<string, string> args;
-    string key, value;
+    vector<string> tokens;
+    string token;
 
-    // Split the input into key:value pairs
-    while (getline(iss, key, ':') && getline(iss, value, ' ')) {
-        args[key] = value;
+    while (iss >> token) {
+        tokens.push_back(token);
     }
 
+    map<string, string> args;
+
+    if (tokens.size() < 4) {
+        return args; 
+    }
+
+    args["command"] = tokens[0];
+
+
+
+    size_t colonPos = tokens[1].find(':');
+    if (colonPos != string::npos) {
+        args["host"] = tokens[1].substr(0, colonPos);
+        args["port"] = tokens[1].substr(colonPos + 1);
+
+    }
+
+    args["username"] = tokens[2];
+    args["password"] = tokens[3];
     return args;
 }
+
+vector<string> StompProtocol::splitInput(const string &input)
+{
+    istringstream iss(input);
+    vector<string> tokens;
+    string token;
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+
