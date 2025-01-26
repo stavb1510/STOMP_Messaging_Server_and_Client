@@ -135,10 +135,10 @@ void StompProtocol::handleReceipt(const std::string &frame) {
 
         cout << "Message received from channel: " << destination << endl;
         cout << "Body: " << body << endl;
-        
+
         // Parse the event from the message body
         Event event(body);
-
+        // ss
         // Update the local map of events
         {
             std::unique_lock<std::mutex> lock(eventsMutex); // Protect the map
