@@ -58,7 +58,7 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
                     handleDisconnect(frame);
                     break;
                 default:
-                    handleError("Invalid command: " + command);
+                    handleError("Invalid command: " + command,frame);
                     break;
             }
         }
@@ -76,28 +76,28 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
         String password = frame.getHeaders().get("passcode");
 
         if (isConnected) {
-            handleError("Client is already connected");
+            handleError("Client is already connected",frame);
             return;
         }
 
         if (acceptVersion == null || !acceptVersion.equals("1.2")) {
-            handleError("Invalid or missing 'accept-version'");
+            handleError("Invalid or missing 'accept-version'", frame);
             return;
         }
 
         if (host == null || !host.equals("stomp.cs.bgu.ac.il")) {
-            handleError("Invalid or missing 'host'");
+            handleError("Invalid or missing 'host'",frame);
             return;
         }
 
         if (username == null || password == null) {
-            handleError("Missing 'login' or 'passcode'");
+            handleError("Missing 'login' or 'passcode'",frame);
             return;
         }
 
         if (connections.isUserRegistered(username)) {
             if (!connections.isPasswordCorrect(username, password)) {
-                handleError("Wrong password");
+                handleError("Wrong password",frame);
                 return;
             }
         } else {
@@ -115,18 +115,18 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
     private void handleSend(StompFrame frame) {
         String destination = frame.getHeaders().get("destination");
         if (destination == null) {
-            handleError("Missing destination");
+            handleError("Missing destination",frame);
             return;
         }
 
         String body = frame.getBody();
         if (body == null || body.isEmpty()) {
-            handleError("Empty message body");
+            handleError("Empty message body",frame);
             return;
         }
 
         if (!subscriptions.containsKey(destination)) {
-            handleError("Client is not subscribed to destination: " + destination);
+            handleError("Client is not subscribed to destination: " + destination,frame);
             return;
         }
         // To do: put the right subscriptionId to every messege we create!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -141,18 +141,19 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
     }
 
     private void handleSubscribe(StompFrame frame) {
-        String destination = "/" + frame.getHeaders().get("destination");
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        String destination =  frame.getHeaders().get("destination");
         String id = frame.getHeaders().get("id");
 
         if (destination == null || id == null) {
-            handleError("Missing 'destination' or 'id'");
+            handleError("Missing 'destination' or 'id'",frame);
             return;
         }
         int subscriptionId;
         try {
             subscriptionId = Integer.parseInt(id);
         } catch (NumberFormatException e) {
-            handleError("Invalid 'id': must be an integer");
+            handleError("Invalid 'id': must be an integer",frame);
             return;
         }
         if (subscriptions.containsKey(destination)) {
@@ -161,13 +162,25 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
         }
         subscriptions.put(destination, subscriptionId);
         connections.subscribe(destination, connectionId);
+
+        String receiptId = frame.getHeaders().get("receipt");
+
+        if (receiptId == null) {
+            return;
+        }
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("receipt-id", receiptId);
+
+        StompFrame receiptFrame = new StompFrame("RECEIPT", headers, "");
+        connections.send(connectionId, (T) receiptFrame);
     }
 
     private void handleUnsubscribe(StompFrame frame) {
         String id = frame.getHeaders().get("id");
 
         if (id == null) {
-            handleError("Missing 'id'");
+            handleError("Missing 'id'",frame);
             return;
         }
         
@@ -175,7 +188,7 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
         try {
             subscriptionId = Integer.parseInt(id);
         } catch (NumberFormatException e) {
-            handleError("Invalid 'id': must be an integer");
+            handleError("Invalid 'id': must be an integer",frame);
             return;
         }
 
@@ -189,16 +202,29 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
         if (destination == null) {
             return;
         }
-
         subscriptions.remove(destination);
         connections.unsubscribe(destination, connectionId);
+
+        String receiptId = frame.getHeaders().get("receipt");
+
+        if (receiptId == null) {
+            return;
+        }
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("receipt-id", receiptId);
+
+        StompFrame receiptFrame = new StompFrame("RECEIPT", headers, "");
+        connections.send(connectionId, (T) receiptFrame);   
+
+        
     }
 
     private void handleDisconnect(StompFrame frame) {
         String receiptId = frame.getHeaders().get("receipt");
 
         if (receiptId == null) {
-            handleError("Missing 'receipt'");
+            handleError("Missing 'receipt'",frame);
             return;
         }
 
@@ -212,12 +238,25 @@ public class StompMessagingProtocolImp<T> implements StompMessagingProtocol<T> {
         shouldTerminate = true;
     }
 
-    private void handleError(String errorMessage) {
+    private void handleError(String errorMessage, StompFrame frame) {
         Map<String, String> headers = new HashMap<>();
         headers.put("message", errorMessage);
 
-        StompFrame errorFrame = new StompFrame("ERROR", headers, "");
+        // Add the "receipt-id" if available
+        String receiptId = frame.getHeaders().get("receipt");
+        if (receiptId != null) {
+            headers.put("receipt-id", receiptId);
+        }
+
+        // Prepare the body of the error frame with the malformed frame details
+        String body = "The message:\n-----\n" + frame.toString() + "\n-----\n" + errorMessage;
+
+        // Create the ERROR frame
+        StompFrame errorFrame = new StompFrame("ERROR", headers, body);
+
+        // Send the ERROR frame to the client
         connections.send(connectionId, (T) errorFrame);
+
         shouldTerminate = true;
         connections.disconnect(connectionId);
     }

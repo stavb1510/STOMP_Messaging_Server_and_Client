@@ -1,0 +1,55 @@
+Channel police
+Stats:
+Total: 7
+Active: 0
+Forces arrival at scene: 0
+Event Reports:
+Report:
+city: Raccoon City
+date time: 23/12/24 07:45
+event name: Burglary
+description: general information:
+  acti...
+
+Report:
+city: Liberty City
+date time: 23/12/24 13:40
+event name: Grand Theft Auto
+description: general information:
+  acti...
+
+Report:
+city: Vice City
+date time: 24/12/24 02:20
+event name: Hit and Run
+description: general information:
+  acti...
+
+Report:
+city: Silent Hill
+date time: 24/12/24 22:15
+event name: Armed Robbery
+description: general information:
+  acti...
+
+Report:
+city: Pallet Town
+date time: 25/12/24 21:30
+event name: Assault
+description: general information:
+  acti...
+
+Report:
+city: Gotham City
+date time: 26/12/24 06:20
+event name: Drug Possession Arrest
+description: general information:
+  acti...
+
+Report:
+city: Los Alamos
+date time: 31/12/24 21:40
+event name: Vandalism
+description: general information:
+  acti...
+

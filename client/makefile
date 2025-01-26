@@ -4,11 +4,11 @@ BIN_DIR := bin
 SRC_DIR := src
 
 # Default target
-all: StompClient
+all: StompEMIClient
 
-# Build the main StompClient executable
-StompClient: $(BIN_DIR)/ConnectionHandler.o $(BIN_DIR)/StompProtocol.o $(BIN_DIR)/StompClient.o $(BIN_DIR)/event.o
-	g++ -o $(BIN_DIR)/StompClient $(BIN_DIR)/ConnectionHandler.o $(BIN_DIR)/StompProtocol.o $(BIN_DIR)/StompClient.o $(BIN_DIR)/event.o $(LDFLAGS)
+# Build the main StompEMClient executable
+StompEMIClient: $(BIN_DIR)/ConnectionHandler.o $(BIN_DIR)/StompProtocol.o $(BIN_DIR)/StompClient.o $(BIN_DIR)/event.o
+	g++ -o $(BIN_DIR)/StompEMIClient $(BIN_DIR)/ConnectionHandler.o $(BIN_DIR)/StompProtocol.o $(BIN_DIR)/StompClient.o $(BIN_DIR)/event.o $(LDFLAGS)
 
 # Compile each source file into object files
 $(BIN_DIR)/ConnectionHandler.o: $(SRC_DIR)/ConnectionHandler.cpp

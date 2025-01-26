@@ -26,5 +26,22 @@ public class StompFrame {
     public String getBody() {
         return body;
     }
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(command).append("\n");
+
+        // Add headers
+        for (Map.Entry<String, String> entry : headers.entrySet()) {
+            sb.append(entry.getKey()).append(":").append(entry.getValue()).append("\n");
+        }
+
+        sb.append("\n"); // Separate headers from body
+        if (body != null && !body.isEmpty()) {
+            sb.append(body);
+        }
+
+        return sb.toString();
+    }   
 
 }

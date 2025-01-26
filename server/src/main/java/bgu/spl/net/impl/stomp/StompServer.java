@@ -13,6 +13,7 @@ public class StompServer {
         int port = Integer.parseInt(args[0]);
         String serverType = args[1];
 
+        ConnectionsImpl<StompFrame> connections = new ConnectionsImpl<>();
         if (serverType.equalsIgnoreCase("tpc")) {
             Server.threadPerClient(
                     port,
@@ -21,10 +22,11 @@ public class StompServer {
             ).serve();
         } else if (serverType.equalsIgnoreCase("reactor")) {
             Server.reactor(
-                    3,
+                    Runtime.getRuntime().availableProcessors(),
                     port,
                     () -> new StompMessagingProtocolImp<>(),
-                    () -> new MessageEncoderDecoderImp()
+                    () -> new MessageEncoderDecoderImp(),
+                    connections
             ).serve();
         } else {
             System.out.println("Invalid server type. Use 'tpc' for Thread-Per-Client or 'reactor' for Reactor.");

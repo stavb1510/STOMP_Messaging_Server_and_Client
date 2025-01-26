@@ -26,10 +26,12 @@ int main(int argc, char *argv[]) {
         cerr << "Cannot connect to " << host << ":" << port << endl;
         return 1;
     }
-    std::cout << "fck spl" << std::endl;
+    
     StompProtocol stompProtocol(connectionHandler);
 
     thread keyboardThread(&StompProtocol::handleKeyboardInput, &stompProtocol);
+    
+
 
     thread serverThread(&StompProtocol::handleServerCommunication, &stompProtocol);
 

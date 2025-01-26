@@ -17,7 +17,6 @@ public class MessageEncoderDecoderImp implements MessageEncoderDecoder<StompFram
         // If we encounter the termination character '\u0000', decode the message
         if (nextByte == '\u0000') {
             String message = popString(); 
-            System.out.println("Full message received: " + message); // Debug: print the full message
             return parseFrame(message);
         }
         // Add the byte to the buffer

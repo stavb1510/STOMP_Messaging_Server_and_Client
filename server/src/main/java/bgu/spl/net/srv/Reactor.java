@@ -11,6 +11,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
+import bgu.spl.net.srv.Connections;
 
 public class Reactor<T> implements Server<T> {
 
@@ -19,6 +20,8 @@ public class Reactor<T> implements Server<T> {
     private final Supplier<MessageEncoderDecoder<T>> readerFactory;
     private final ActorThreadPool pool;
     private Selector selector;
+    private final Connections<T> connections;
+    private int connectionsIdCnt = 0;
 
     private Thread selectorThread;
     private final ConcurrentLinkedQueue<Runnable> selectorTasks = new ConcurrentLinkedQueue<>();
@@ -27,12 +30,14 @@ public class Reactor<T> implements Server<T> {
             int numThreads,
             int port,
             Supplier<MessagingProtocol<T>> protocolFactory,
-            Supplier<MessageEncoderDecoder<T>> readerFactory) {
+            Supplier<MessageEncoderDecoder<T>> readerFactory,
+            Connections<T> connections) {
 
         this.pool = new ActorThreadPool(numThreads);
         this.port = port;
         this.protocolFactory = protocolFactory;
         this.readerFactory = readerFactory;
+        this.connections = connections;
     }
 
     @Override
@@ -95,11 +100,14 @@ public class Reactor<T> implements Server<T> {
     private void handleAccept(ServerSocketChannel serverChan, Selector selector) throws IOException {
         SocketChannel clientChan = serverChan.accept();
         clientChan.configureBlocking(false);
+        int connectionId = connectionsIdCnt++;
         final NonBlockingConnectionHandler<T> handler = new NonBlockingConnectionHandler<>(
                 readerFactory.get(),
                 protocolFactory.get(),
                 clientChan,
-                this);
+                this,
+                connections,
+                connectionId);
         clientChan.register(selector, SelectionKey.OP_READ, handler);
     }
 

@@ -19,16 +19,23 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
     private final Queue<ByteBuffer> writeQueue = new ConcurrentLinkedQueue<>();
     private final SocketChannel chan;
     private final Reactor reactor;
+    private final Connections<T> connections;
+    private int connectionId;
 
     public NonBlockingConnectionHandler(
             MessageEncoderDecoder<T> reader,
             MessagingProtocol<T> protocol,
             SocketChannel chan,
-            Reactor reactor) {
+            Reactor reactor,
+            Connections<T> connections,
+            int connectionId) {
         this.chan = chan;
         this.encdec = reader;
         this.protocol = protocol;
         this.reactor = reactor;
+        this.connections = connections;
+        this.connectionId = connectionId;
+        protocol.start(connectionId,connections,this);
     }
 
     public Runnable continueRead() {
@@ -48,7 +55,7 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
                     while (buf.hasRemaining()) {
                         T nextMessage = encdec.decodeNextByte(buf.get());
                         if (nextMessage != null) {
-                            //????????????????????????????????????????????????????????????????
+                            System.out.println(nextMessage.toString());
                             protocol.process(nextMessage);
                         }
                     }
@@ -110,6 +117,9 @@ public class NonBlockingConnectionHandler<T> implements ConnectionHandler<T> {
 
     private static void releaseBuffer(ByteBuffer buff) {
         BUFFER_POOL.add(buff);
+    }
+    public MessagingProtocol<T> getProtocol() {
+        return protocol;
     }
 
     @Override
