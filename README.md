@@ -1,5 +1,4 @@
-# STOMP Client-Server Messaging System – BGU Systems Programming Lab Assignment 3
-
+# STOMP Client-Server Messaging System
 This project implements a complete client-server messaging system using the STOMP 1.2 protocol. The system was developed as part of the Systems Programming Laboratory (SPL251) course at Ben-Gurion University of the Negev. It includes a multithreaded server and a command-line client, enabling users to connect, subscribe to topics, send messages, and disconnect—simulating real-world publish-subscribe behavior over TCP sockets.
 
 ## Features
