@@ -26,20 +26,22 @@ This project implements a complete client-server messaging system using the STOM
 
 ## Build and Run
 
-1. **Clone the repository**  
-   `git clone https://github.com/stavb1510/SPL251_Assignment3.git && cd SPL251_Assignment3`
+1. **Clone the repository**
+   `git clone https://github.com/stavb1510/STOMP_Messaging_Server_and_Client.git && cd STOMP_Messaging_Server_and_Client`
 
-2. **Build the project**  
-   `mvn clean install`
+2. **Build and run the server** (Java, Maven)
+   ```bash
+   cd server
+   mvn clean compile
+   mvn exec:java -Dexec.mainClass="bgu.spl.net.impl.stomp.StompServer" -Dexec.args="7777 tpc"   # or: reactor
+   ```
 
-3. **Run the server**  
-   From the `server/` directory:  
-   `mvn exec:java -Dexec.mainClass="bgu.spl.net.impl.stomp.ServerMain"`
-
-4. **Run the client**  
-   From the `client/bin` directory:  
-   `./StompEsClient`  
-   (or compile and run from source using Maven)
+3. **Build and run the client** (C++, needs Boost)
+   ```bash
+   cd client
+   make
+   ./bin/StompEMIClient
+   ```
 
 ## Developer
 **Stav Balaish**  
